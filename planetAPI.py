@@ -15,7 +15,7 @@ from requests.auth import HTTPBasicAuth
 api_key = '25bafcdc29b94cc488b89c2ca9539a98'
 
 
-# Functions to create: function to select 1km by 1km area around ship location
+# Functions to create: function to only select 1km by 1km area around ship location
 # Function to set all filters
 # Function to give in AIS data
 # Function to determine if satelite passes at time
@@ -25,6 +25,9 @@ api_key = '25bafcdc29b94cc488b89c2ca9539a98'
 
 #%% Determining area and filters
 
+#https://developers.planet.com/docs/apis/data/searches-filtering/
+
+
 # Area in lat,lon (created via geojson.io) 
 geojson_geometry = {
   "type": "Polygon",
@@ -33,8 +36,7 @@ geojson_geometry = {
       [-121.59290313720705, 37.93444993515032],
       [-121.27017974853516, 37.93444993515032],
       [-121.27017974853516, 38.065932950547484],
-      [-121.59290313720705, 38.065932950547484],
-      [-121.59290313720705, 37.93444993515032]
+      [-121.59290313720705, 38.065932950547484]
     ]
   ]
 }
@@ -65,10 +67,20 @@ cloud_cover_filter = {
   }
 }
 
+area_coverage_filter = {
+    "type": "RangeFilter",
+    "field_name": "visible_percent",
+    "config":{
+        "gte": 50
+        }
+}
+
 # combine our geo, date, cloud filters
 combined_filter = {
   "type": "AndFilter",
-  "config": [geometry_filter, date_range_filter, cloud_cover_filter]
+   "config": [geometry_filter, date_range_filter, cloud_cover_filter,
+              area_coverage_filter]
+  # "config": [geometry_filter, date_range_filter, cloud_cover_filter]
 }
 
 
