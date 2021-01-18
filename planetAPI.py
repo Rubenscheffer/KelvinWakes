@@ -130,6 +130,15 @@ geometry_filter = {
   }
 }
 
+# Filter to only download Sentinel 2 data
+satelite_filter = {
+   "type":"StringInFilter",
+   "field_name":"item_type",
+   "config":[
+      "Sentinel2L1C"
+   ]
+}
+
 total_filter = {
     "type": "AndFilter",
     "config": [date_filter, permission_filter, geometry_filter, cloud_filter]}
