@@ -11,7 +11,10 @@ pathfile = r'C://Users/Ruben/Documents/Thesis/Data/Imagetest/'
 
 fp = pathfile + '20201228_033335_48_2424_3B_AnalyticMS_clip.tiff'
 
-dataset = gdal.Open(fp, gdal.GA_ReadOnly)
-band = dataset.GetRasterBand(4)
+image = gdal.Open(fp, gdal.GA_ReadOnly)
+
+# Load specific band
+band = image.GetRasterBand(4)
+
 arr = band.ReadAsArray()
 plt.imshow(arr)
