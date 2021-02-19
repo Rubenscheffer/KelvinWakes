@@ -1,25 +1,35 @@
 "Code of 19/02/2021 meant to read and filter AIS Spire data"
 
-#Imports
+#%% Imports
 # import numpy as np
+# import pickle
 import pandas as pd
-# import matplotlib.pyplot as plt
 import time
+# import matplotlib.pyplot as plt
 # import cartopy.crs as ccrs
-
-filepath = r'C:/Users/Ruben/Documents/Thesis/Data/AIS/AISdata.csv'
 
 start_time = time.time()
 
+
+#%% Loading File
+
+filepath = r'C:/Users/Ruben/Documents/Thesis/Data/AIS/AISdata.csv'
+
 data = pd.read_csv(filepath)
-
-print(data.head())
-
+headers = data.columns
 data_head = data.head()
 
-headers = data.columns
+#%% Filtering File
 
-# test_data.drop(to_drop, inplace = True, axis = 'columns')
+columns_to_drop = ['created_at', 'eta', 'destination', 'status', 'maneuver']
+data.drop(columns_to_drop, inplace=True, axis='columns')
+
+# Joining two measurement sets together
+
+#%% After filtering
+
+headers = data.columns
+data_head = data.head()
 
 
 #%% Visualising
@@ -32,3 +42,9 @@ headers = data.columns
 # ax.scatter(lon,lat, s=4)
 
 # plt.show()
+
+#%% Final Message
+
+end_time = time.time()
+execution_time = end_time - start_time
+print(f'Done in {execution_time} seconds')
