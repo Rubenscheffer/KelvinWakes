@@ -23,7 +23,8 @@ quick_url = "{}/quick-search".format(url)
 
 #%% To do
 
-# Functions to create: function to only select 1km by 1km area around ship location
+# Functions to create: function to only select 1km by 1km area around
+ship location
 # Function to set all filters
 # Function to give in AIS data
 # Function to determine if satelite passes at time
@@ -33,23 +34,18 @@ quick_url = "{}/quick-search".format(url)
 """
 #%% Function definitions
 
+
 def p(data):
     print(json.dumps(data, indent=2))
-    
 
-def geometry(ship_location, box_size = 0.01):
-    
-    
-    
+
+def geometry(ship_location, box_size=0.01):
     return geometry_filter
 
+
 #%% Input ship data (WIP)
-    
-ship_location = [10,10]
 
-
-
-
+ship_location = [10, 10]
 
 
 #%% Start request (new)
@@ -67,21 +63,18 @@ res = session.get(url)
 if res.status_code != 200:
     raise Exception('No correct server response')
 
-
-
 # Select item types (satelite selection)
-
-
 
 #%% Test filter
 item_types = ["PSScene4Band"]
 
 date_filter = {
-    "type": "DateRangeFilter", # Type of filter -> Date Range
-    "field_name": "acquired", # The field to filter on: "acquired" -> Date on which the "image was taken"
+    "type": "DateRangeFilter",  # Type of filter -> Date Range
+    "field_name": "acquired",  # The field to filter on: "acquired" ->
+    # Date on which the "image was taken"
     "config": {
         "gte": "2013-01-01T00:00:00.000Z",
-        "lte": "2016-01-01T00:00:00.000Z"# "gte" -> Greater than or equal to
+        "lte": "2016-01-01T00:00:00.000Z"  # "gte" -> Greater than or equal to
     }
 }
 
