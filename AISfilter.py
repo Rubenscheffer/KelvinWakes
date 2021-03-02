@@ -92,6 +92,9 @@ for i, row in ship_data.iterrows():
     df.loc[df['mmsi'] == curr_mmsi, 'length'] = str(curr_length)
     df.loc[df['mmsi'] == curr_mmsi, 'width'] = str(curr_width)
     
+df = df[df['name'].notna()].sort_values(by=['name'], ascending=False)
+df = df[df['name'] != 'nan']
+
 # Copy relevant data to variables (mmsi, name, draught, ship_and_cargo_type, length, width)
 # Fill location data at this mmsi with these variables
 
@@ -106,12 +109,9 @@ data_head = data.head()
 
 #%% Filtering and saving
 
-df = df[df['name'].notna()].sort_values(by=['name'], ascending=False)
-df = df[df['name'] != 'nan']
-
 savepath = r'C://Users/Ruben/Documents/Thesis/Data/AIS/AISdataframe.p'
 
-pickle.dump(df, open(savepath, "wb"))
+# pickle.dump(df, open(savepath, "wb"))
 
 #%% Visualising
 
