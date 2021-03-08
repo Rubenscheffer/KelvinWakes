@@ -22,9 +22,9 @@ image = gdal.Open(fp, gdal.GA_ReadOnly)
 
 #Average of RGB bands
 
-r_band = image.GetRasterBand(1).ReadAsArray()/2**14
-g_band = image.GetRasterBand(2).ReadAsArray()/2**14
-b_band = image.GetRasterBand(3).ReadAsArray()/2**14
+r_band = image.GetRasterBand(1).ReadAsArray() / 2**15
+g_band = image.GetRasterBand(2).ReadAsArray() / 2**15
+b_band = image.GetRasterBand(3).ReadAsArray() / 2**15
 
 arr = (r_band + g_band + b_band) / 3
 
