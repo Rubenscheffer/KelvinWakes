@@ -441,79 +441,82 @@ def cosicorr(I1, I2, beta1=0.35, beta2=0.5):
     (m, snr) = tpss(Qn, WS, m0)
     return (m, snr, m0, SNR)
 
-# inital administration
-S2name = 'S2B_MSIL1C_20200420T031539_N0209_R118_T48NUG_20200420T065223.SAFE'
-boi = (2,3,4,8) # band of interest
-ds = 2**6
-
-dat_path = os.getcwd()
-
-# get data structure
-fname = os.path.join(dat_path, S2name, 'MTD_MSIL1C.xml')
-im_paths = get_S2_image_locations(fname)
-
-# read imagery data
-for i in range(len(boi)):
-    im_id = boi[i]
-    f_full = os.path.join(dat_path, S2name, im_paths[im_id-1]+'.jp2')
-    im, spatialRef, geoTransform, targetprj = read_band_s2(f_full)
-    if i == 0:
-        im_stack = im
-    else:
-        im_stack = np.dstack((im_stack, im))
-    del im
-
-# read meta data
-split_path = im_paths[0].split('/') # get location of imagery meta data
-path_meta = os.path.join(dat_path, S2name, split_path[0], split_path[1])
-(sun_zn, sub_az) = read_sun_angles_s2(path_meta)
-
-
-# get sensor configuration
-path_meta = os.path.join(dat_path, S2name, split_path[0], split_path[1], \
-                         'QI_DATA')
-msk_dim = np.shape(im_stack)
-det_stack = read_detector_mask(path_meta, msk_dim, boi)    
+def main():
+    # inital administration
+    S2name = 'S2B_MSIL1C_20200420T031539_N0209_R118_T48NUG_20200420T065223.SAFE'
+    boi = (2,3,4,8) # band of interest
+    ds = 2**6
     
-# get sensor geometry
-
-# create grid and estimate velocities
-im_stack, I_ul, J_ul = prepare_grids(im_stack, ds)
-
-UV = np.zeros(I_ul.shape, dtype=complex)
-UV_0 = np.zeros(I_ul.shape, dtype=complex)
-P,C = np.zeros(I_ul.shape), np.zeros(I_ul.shape)
-
-I_ul, J_ul = I_ul.flatten(), J_ul.flatten()
-for i in range(UV.size):
-    i_b, i_e = I_ul[i], I_ul[i]+ds # row begining and ending
-    j_b, j_e = J_ul[i], J_ul[i]+ds # collumn begining and ending
+    dat_path = os.getcwd()
     
-    sub_b1 = im_stack[i_b:i_e,j_b:j_e,0] # image templates
-    sub_b2 = im_stack[i_b:i_e,j_b:j_e,2] 
-
-    # simple normalization
-    sub_b1 = mat_to_gray(sub_b1, sub_b1==0)
-    sub_b2 = mat_to_gray(sub_b2, sub_b2==0)
+    # get data structure
+    fname = os.path.join(dat_path, S2name, 'MTD_MSIL1C.xml')
+    im_paths = get_S2_image_locations(fname)
     
-    m, snr, m0, SNR = cosicorr(sub_b1, sub_b2)
+    # read imagery data
+    for i in range(len(boi)):
+        im_id = boi[i]
+        f_full = os.path.join(dat_path, S2name, im_paths[im_id-1]+'.jp2')
+        im, spatialRef, geoTransform, targetprj = read_band_s2(f_full)
+        if i == 0:
+            im_stack = im
+        else:
+            im_stack = np.dstack((im_stack, im))
+        del im
     
-    ij = np.unravel_index(i, UV.shape)
+    # read meta data
+    split_path = im_paths[0].split('/') # get location of imagery meta data
+    path_meta = os.path.join(dat_path, S2name, split_path[0], split_path[1])
+    (sun_zn, sub_az) = read_sun_angles_s2(path_meta)
     
-    UV_0[ij] = np.complex(m0[0], m0[1]) # sub-pioxel localization
-    UV[ij] = np.complex(m[0], m[1])     # sub-pixel refinement
-    P[ij], C[ij] = np.real(snr), SNR #  
-
-# some plotting
-fig, ax = plt.subplots()
-im = plt.imshow(np.angle(UV_0))
-#fig.colorbar(im, ax=ax)
-im.set_clim(-np.pi, np.pi)
-plt.show()    
-
-fig, ax = plt.subplots()
-im = plt.imshow(np.real(UV_0))
-#fig.colorbar(im, ax=ax)
-im.set_clim(-1, 1)
-plt.show() 
     
+    # get sensor configuration
+    path_meta = os.path.join(dat_path, S2name, split_path[0], split_path[1], \
+                             'QI_DATA')
+    msk_dim = np.shape(im_stack)
+    det_stack = read_detector_mask(path_meta, msk_dim, boi)    
+        
+    # get sensor geometry
+    
+    # create grid and estimate velocities
+    im_stack, I_ul, J_ul = prepare_grids(im_stack, ds)
+    
+    UV = np.zeros(I_ul.shape, dtype=complex)
+    UV_0 = np.zeros(I_ul.shape, dtype=complex)
+    P,C = np.zeros(I_ul.shape), np.zeros(I_ul.shape)
+    
+    I_ul, J_ul = I_ul.flatten(), J_ul.flatten()
+    for i in range(UV.size):
+        i_b, i_e = I_ul[i], I_ul[i]+ds # row begining and ending
+        j_b, j_e = J_ul[i], J_ul[i]+ds # collumn begining and ending
+        
+        sub_b1 = im_stack[i_b:i_e,j_b:j_e,0] # image templates
+        sub_b2 = im_stack[i_b:i_e,j_b:j_e,2] 
+    
+        # simple normalization
+        sub_b1 = mat_to_gray(sub_b1, sub_b1==0)
+        sub_b2 = mat_to_gray(sub_b2, sub_b2==0)
+        
+        m, snr, m0, SNR = cosicorr(sub_b1, sub_b2)
+        
+        ij = np.unravel_index(i, UV.shape)
+        
+        UV_0[ij] = np.complex(m0[0], m0[1]) # sub-pioxel localization
+        UV[ij] = np.complex(m[0], m[1])     # sub-pixel refinement
+        P[ij], C[ij] = np.real(snr), SNR #  
+    
+    # some plotting
+    fig, ax = plt.subplots()
+    im = plt.imshow(np.angle(UV_0))
+    #fig.colorbar(im, ax=ax)
+    im.set_clim(-np.pi, np.pi)
+    plt.show()    
+    
+    fig, ax = plt.subplots()
+    im = plt.imshow(np.real(UV_0))
+    #fig.colorbar(im, ax=ax)
+    im.set_clim(-1, 1)
+    plt.show() 
+    
+if __name__ == "__main__":
+    main()    
