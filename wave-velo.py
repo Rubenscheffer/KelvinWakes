@@ -10,6 +10,7 @@ from osgeo import gdal, osr
 import numpy as np
 from scipy import ndimage 
 from scipy.interpolate import griddata
+from PIL import Image, ImageDraw
 
 # plotting libraries
 import matplotlib.pyplot as plt 
@@ -137,6 +138,36 @@ def read_sun_angles_s2(path):
     Az = griddata(Aij, Az.reshape(-1), (Igrd, Jgrd), method="linear")
     del Igrd, Jgrd, Zij, Aij
     return Zn, Az
+
+def read_detector_mask(path_meta, msk_dim, boi):   
+    det_stack = np.zeros(msk_dim, dtype='int8')    
+    for i in range(len(boi)):
+        im_id = boi[i]
+        f_meta = os.path.join(path_meta, 'MSK_DETFOO_B'+ f'{im_id:02.0f}' + '.gml')
+        dom = ElementTree.parse(glob.glob(f_meta)[0])
+        root = dom.getroot()  
+        
+        mask_members = root[2]
+        for k in range(len(mask_members)):
+            # get detector number from meta-data
+            det_id = mask_members[k].attrib
+            det_id = list(det_id.items())[0][1].split('-')[2]
+            det_num = int(det_id)
+        
+            # get footprint
+            pos_dim = mask_members[k][1][0][0][0][0].attrib
+            pos_dim = int(list(pos_dim.items())[0][1])
+            pos_list = mask_members[k][1][0][0][0][0].text
+            pos_row = [float(s) for s in pos_list.split(' ')]
+            pos_arr = np.array(pos_row).reshape((int(len(pos_row)/pos_dim), pos_dim))
+            
+            # make mask
+            msk = Image.new("L", [np.size(det_stack,0), np.size(det_stack,1)], 0)
+            ImageDraw.Draw(msk).polygon(tuple(map(tuple, pos_arr[:,0:2])), \
+                                        outline=0, fill=det_num)
+            msk = np.array(msk)    
+            det_stack[:,:,i] = np.maximum(det_stack[:,:,i], msk)
+    return det_stack
 
 def read_sensor_angles_s2(path):
     """
@@ -437,6 +468,14 @@ split_path = im_paths[0].split('/') # get location of imagery meta data
 path_meta = os.path.join(dat_path, S2name, split_path[0], split_path[1])
 (sun_zn, sub_az) = read_sun_angles_s2(path_meta)
 
+
+# get sensor configuration
+path_meta = os.path.join(dat_path, S2name, split_path[0], split_path[1], \
+                         'QI_DATA')
+msk_dim = np.shape(im_stack)
+det_stack = read_detector_mask(path_meta, msk_dim, boi)    
+    
+# get sensor geometry
 
 # create grid and estimate velocities
 im_stack, I_ul, J_ul = prepare_grids(im_stack, ds)
