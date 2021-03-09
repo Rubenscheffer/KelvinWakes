@@ -139,7 +139,7 @@ def read_sun_angles_s2(path):
     del Igrd, Jgrd, Zij, Aij
     return Zn, Az
 
-def read_detector_mask(path_meta, msk_dim, boi):   
+def read_detector_mask(path_meta, msk_dim, boi, geoTransform):   
     det_stack = np.zeros(msk_dim, dtype='int8')    
     for i in range(len(boi)):
         im_id = boi[i]
@@ -161,13 +161,43 @@ def read_detector_mask(path_meta, msk_dim, boi):
             pos_row = [float(s) for s in pos_list.split(' ')]
             pos_arr = np.array(pos_row).reshape((int(len(pos_row)/pos_dim), pos_dim))
             
+            # transform to image coordinates
+            i_arr, j_arr = map2pix(geoTransform, pos_arr[:,0], pos_arr[:,1])
+            ij_arr = np.hstack((j_arr[:,np.newaxis], i_arr[:,np.newaxis]))
             # make mask
             msk = Image.new("L", [np.size(det_stack,0), np.size(det_stack,1)], 0)
-            ImageDraw.Draw(msk).polygon(tuple(map(tuple, pos_arr[:,0:2])), \
-                                        outline=0, fill=det_num)
+            ImageDraw.Draw(msk).polygon(tuple(map(tuple, ij_arr[:,0:2])), \
+                                        outline=det_num, fill=det_num)
             msk = np.array(msk)    
             det_stack[:,:,i] = np.maximum(det_stack[:,:,i], msk)
     return det_stack
+
+def read_cloud_mask(path_meta, msk_dim, geoTransform):   
+    msk_clouds = np.zeros(msk_dim, dtype='int8')    
+
+    f_meta = os.path.join(path_meta, 'MSK_CLOUDS_B00.gml')
+    dom = ElementTree.parse(glob.glob(f_meta)[0])
+    root = dom.getroot()  
+    
+    mask_members = root[2]
+    for k in range(len(mask_members)):    
+        # get footprint
+        pos_dim = mask_members[k][1][0][0][0][0].attrib
+        pos_dim = int(list(pos_dim.items())[0][1])
+        pos_list = mask_members[k][1][0][0][0][0].text
+        pos_row = [float(s) for s in pos_list.split(' ')]
+        pos_arr = np.array(pos_row).reshape((int(len(pos_row)/pos_dim), pos_dim))
+        
+        # transform to image coordinates
+        i_arr, j_arr = map2pix(geoTransform, pos_arr[:,0], pos_arr[:,1])
+        ij_arr = np.hstack((j_arr[:,np.newaxis], i_arr[:,np.newaxis]))
+        # make mask
+        msk = Image.new("L", [msk_dim[0], msk_dim[1]], 0)
+        ImageDraw.Draw(msk).polygon(tuple(map(tuple, ij_arr[:,0:2])), \
+                                    outline=1, fill=1)
+        msk = np.array(msk)    
+        msk_clouds = np.maximum(msk_clouds, msk)
+    return msk_clouds
 
 def read_sensor_angles_s2(path):
     """
@@ -489,6 +519,23 @@ def cosicorr(I1, I2, beta1=0.35, beta2=0.5):
     (m, snr) = tpss(Qn, WS, m0)
     return (m, snr, m0, SNR)
 
+# the main processing chain
+
+inter_band = np.array([[7.0, 0.3], 
+                       [4.7, 2.6],  
+                       [5.2, 2.1],    
+                       [5.7, 1.6],  
+                       [6.0, 1.3],  
+                       [6.2, 1.1],  
+                       [6.5, 0.8],  
+                       [4.9, 2.4],  
+                       [6.8, 0.5],  
+                       [7.3, 0.0],  
+                       [5.6, 1.8],    
+                       [6.2, 1.1],                             
+                       [6.8, 0.5]]) # from Yurovskaya, 10.1016/j.rse.2019.111468
+inter_band = np.tile(inter_band, 6)
+
 def main():
     # inital administration
     S2name = 'S2B_MSIL1C_20200420T031539_N0209_R118_T48NUG_20200420T065223.SAFE'
@@ -522,9 +569,12 @@ def main():
     path_meta = os.path.join(dat_path, S2name, split_path[0], split_path[1], \
                              'QI_DATA')
     msk_dim = np.shape(im_stack)
-    det_stack = read_detector_mask(path_meta, msk_dim, boi)    
+    det_stack = read_detector_mask(path_meta, msk_dim, boi, geoTransform)    
         
     # get sensor geometry
+
+    # get cloud information
+    msk_cloud = read_cloud_mask(path_meta, msk_dim[0:2], geoTransform)
     
     # create grid and estimate velocities
     im_stack, I_ul, J_ul = prepare_grids(im_stack, ds)
