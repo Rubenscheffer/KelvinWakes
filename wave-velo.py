@@ -241,6 +241,54 @@ def mat_to_gray(I, notI):  # pre-processing or generic
     Inew[notI] = 0
     return Inew
 
+# mapping tools
+def map2pix(geoTransform, x, y):  # generic
+    """
+    Transform map coordinates to image coordinates
+    input:   geoTransform   array (1 x 6)     georeference transform of
+                                              an image
+             x              array (n x 1)     map coordinates
+             y              array (n x 1)     map coordinates
+    output:  i              array (n x 1)     row coordinates in image space
+             j              array (n x 1)     column coordinates in image space
+    """
+    j = x - geoTransform[0]
+    i = y - geoTransform[3]
+
+    if geoTransform[2] == 0:
+        j = j / geoTransform[1]
+    else:
+        j = (j / geoTransform[1]
+             + i / geoTransform[2])
+
+    if geoTransform[4] == 0:
+        i = i / geoTransform[5]
+    else:
+        i = (j / geoTransform[4]
+             + i / geoTransform[5])
+
+    return i, j
+
+def pix2map(geoTransform, i, j):  # generic
+    """
+    Transform image coordinates to map coordinates
+    input:   geoTransform   array (1 x 6)     georeference transform of
+                                              an image
+             i              array (n x 1)     row coordinates in image space
+             j              array (n x 1)     column coordinates in image space
+    output:  x              array (n x 1)     map coordinates
+             y              array (n x 1)     map coordinates
+    """
+    x = (geoTransform[0]
+         + geoTransform[1] * j
+         + geoTransform[2] * i
+         )
+    y = (geoTransform[3]
+         + geoTransform[4] * j
+         + geoTransform[5] * i
+         )
+    return x, y
+
 # image matching functions
 def prepare_grids(im_stack, ds):
     '''
