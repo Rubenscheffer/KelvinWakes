@@ -139,7 +139,7 @@ def read_sun_angles_s2(path):
     del Igrd, Jgrd, Zij, Aij
     return Zn, Az
 
-def read_detector_mask(path_meta, msk_dim, boi):   
+def read_detector_mask(path_meta, msk_dim, boi, geoTransform):   
     det_stack = np.zeros(msk_dim, dtype='int8')    
     for i in range(len(boi)):
         im_id = boi[i]
@@ -161,13 +161,43 @@ def read_detector_mask(path_meta, msk_dim, boi):
             pos_row = [float(s) for s in pos_list.split(' ')]
             pos_arr = np.array(pos_row).reshape((int(len(pos_row)/pos_dim), pos_dim))
             
+            # transform to image coordinates
+            i_arr, j_arr = map2pix(geoTransform, pos_arr[:,0], pos_arr[:,1])
+            ij_arr = np.hstack((j_arr[:,np.newaxis], i_arr[:,np.newaxis]))
             # make mask
             msk = Image.new("L", [np.size(det_stack,0), np.size(det_stack,1)], 0)
-            ImageDraw.Draw(msk).polygon(tuple(map(tuple, pos_arr[:,0:2])), \
-                                        outline=0, fill=det_num)
+            ImageDraw.Draw(msk).polygon(tuple(map(tuple, ij_arr[:,0:2])), \
+                                        outline=det_num, fill=det_num)
             msk = np.array(msk)    
             det_stack[:,:,i] = np.maximum(det_stack[:,:,i], msk)
     return det_stack
+
+def read_cloud_mask(path_meta, msk_dim, geoTransform):   
+    msk_clouds = np.zeros(msk_dim, dtype='int8')    
+
+    f_meta = os.path.join(path_meta, 'MSK_CLOUDS_B00.gml')
+    dom = ElementTree.parse(glob.glob(f_meta)[0])
+    root = dom.getroot()  
+    
+    mask_members = root[2]
+    for k in range(len(mask_members)):    
+        # get footprint
+        pos_dim = mask_members[k][1][0][0][0][0].attrib
+        pos_dim = int(list(pos_dim.items())[0][1])
+        pos_list = mask_members[k][1][0][0][0][0].text
+        pos_row = [float(s) for s in pos_list.split(' ')]
+        pos_arr = np.array(pos_row).reshape((int(len(pos_row)/pos_dim), pos_dim))
+        
+        # transform to image coordinates
+        i_arr, j_arr = map2pix(geoTransform, pos_arr[:,0], pos_arr[:,1])
+        ij_arr = np.hstack((j_arr[:,np.newaxis], i_arr[:,np.newaxis]))
+        # make mask
+        msk = Image.new("L", [msk_dim[0], msk_dim[1]], 0)
+        ImageDraw.Draw(msk).polygon(tuple(map(tuple, ij_arr[:,0:2])), \
+                                    outline=1, fill=1)
+        msk = np.array(msk)    
+        msk_clouds = np.maximum(msk_clouds, msk)
+    return msk_clouds
 
 def read_sensor_angles_s2(path):
     """
@@ -240,6 +270,54 @@ def mat_to_gray(I, notI):  # pre-processing or generic
                             Inew[yesI].max()), (0, +1))
     Inew[notI] = 0
     return Inew
+
+# mapping tools
+def map2pix(geoTransform, x, y):  # generic
+    """
+    Transform map coordinates to image coordinates
+    input:   geoTransform   array (1 x 6)     georeference transform of
+                                              an image
+             x              array (n x 1)     map coordinates
+             y              array (n x 1)     map coordinates
+    output:  i              array (n x 1)     row coordinates in image space
+             j              array (n x 1)     column coordinates in image space
+    """
+    j = x - geoTransform[0]
+    i = y - geoTransform[3]
+
+    if geoTransform[2] == 0:
+        j = j / geoTransform[1]
+    else:
+        j = (j / geoTransform[1]
+             + i / geoTransform[2])
+
+    if geoTransform[4] == 0:
+        i = i / geoTransform[5]
+    else:
+        i = (j / geoTransform[4]
+             + i / geoTransform[5])
+
+    return i, j
+
+def pix2map(geoTransform, i, j):  # generic
+    """
+    Transform image coordinates to map coordinates
+    input:   geoTransform   array (1 x 6)     georeference transform of
+                                              an image
+             i              array (n x 1)     row coordinates in image space
+             j              array (n x 1)     column coordinates in image space
+    output:  x              array (n x 1)     map coordinates
+             y              array (n x 1)     map coordinates
+    """
+    x = (geoTransform[0]
+         + geoTransform[1] * j
+         + geoTransform[2] * i
+         )
+    y = (geoTransform[3]
+         + geoTransform[4] * j
+         + geoTransform[5] * i
+         )
+    return x, y
 
 # image matching functions
 def prepare_grids(im_stack, ds):
@@ -441,79 +519,102 @@ def cosicorr(I1, I2, beta1=0.35, beta2=0.5):
     (m, snr) = tpss(Qn, WS, m0)
     return (m, snr, m0, SNR)
 
-# inital administration
-S2name = 'S2B_MSIL1C_20200420T031539_N0209_R118_T48NUG_20200420T065223.SAFE'
-boi = (2,3,4,8) # band of interest
-ds = 2**6
+# the main processing chain
 
-dat_path = os.getcwd()
+inter_band = np.array([[7.0, 0.3], 
+                       [4.7, 2.6],  
+                       [5.2, 2.1],    
+                       [5.7, 1.6],  
+                       [6.0, 1.3],  
+                       [6.2, 1.1],  
+                       [6.5, 0.8],  
+                       [4.9, 2.4],  
+                       [6.8, 0.5],  
+                       [7.3, 0.0],  
+                       [5.6, 1.8],    
+                       [6.2, 1.1],                             
+                       [6.8, 0.5]]) # from Yurovskaya, 10.1016/j.rse.2019.111468
+inter_band = np.tile(inter_band, 6)
 
-# get data structure
-fname = os.path.join(dat_path, S2name, 'MTD_MSIL1C.xml')
-im_paths = get_S2_image_locations(fname)
-
-# read imagery data
-for i in range(len(boi)):
-    im_id = boi[i]
-    f_full = os.path.join(dat_path, S2name, im_paths[im_id-1]+'.jp2')
-    im, spatialRef, geoTransform, targetprj = read_band_s2(f_full)
-    if i == 0:
-        im_stack = im
-    else:
-        im_stack = np.dstack((im_stack, im))
-    del im
-
-# read meta data
-split_path = im_paths[0].split('/') # get location of imagery meta data
-path_meta = os.path.join(dat_path, S2name, split_path[0], split_path[1])
-(sun_zn, sub_az) = read_sun_angles_s2(path_meta)
-
-
-# get sensor configuration
-path_meta = os.path.join(dat_path, S2name, split_path[0], split_path[1], \
-                         'QI_DATA')
-msk_dim = np.shape(im_stack)
-det_stack = read_detector_mask(path_meta, msk_dim, boi)    
+def main():
+    # inital administration
+    S2name = 'S2B_MSIL1C_20200420T031539_N0209_R118_T48NUG_20200420T065223.SAFE'
+    boi = (2,3,4,8) # band of interest
+    ds = 2**6
     
-# get sensor geometry
-
-# create grid and estimate velocities
-im_stack, I_ul, J_ul = prepare_grids(im_stack, ds)
-
-UV = np.zeros(I_ul.shape, dtype=complex)
-UV_0 = np.zeros(I_ul.shape, dtype=complex)
-P,C = np.zeros(I_ul.shape), np.zeros(I_ul.shape)
-
-I_ul, J_ul = I_ul.flatten(), J_ul.flatten()
-for i in range(UV.size):
-    i_b, i_e = I_ul[i], I_ul[i]+ds # row begining and ending
-    j_b, j_e = J_ul[i], J_ul[i]+ds # collumn begining and ending
+    dat_path = os.getcwd()
     
-    sub_b1 = im_stack[i_b:i_e,j_b:j_e,0] # image templates
-    sub_b2 = im_stack[i_b:i_e,j_b:j_e,2] 
+    # get data structure
+    fname = os.path.join(dat_path, S2name, 'MTD_MSIL1C.xml')
+    im_paths = get_S2_image_locations(fname)
+    
+    # read imagery data
+    for i in range(len(boi)):
+        im_id = boi[i]
+        f_full = os.path.join(dat_path, S2name, im_paths[im_id-1]+'.jp2')
+        im, spatialRef, geoTransform, targetprj = read_band_s2(f_full)
+        if i == 0:
+            im_stack = im
+        else:
+            im_stack = np.dstack((im_stack, im))
+        del im
+    
+    # read meta data
+    split_path = im_paths[0].split('/') # get location of imagery meta data
+    path_meta = os.path.join(dat_path, S2name, split_path[0], split_path[1])
+    (sun_zn, sub_az) = read_sun_angles_s2(path_meta)
+    
+    
+    # get sensor configuration
+    path_meta = os.path.join(dat_path, S2name, split_path[0], split_path[1], \
+                             'QI_DATA')
+    msk_dim = np.shape(im_stack)
+    det_stack = read_detector_mask(path_meta, msk_dim, boi, geoTransform)    
+        
+    # get sensor geometry
 
-    # simple normalization
-    sub_b1 = mat_to_gray(sub_b1, sub_b1==0)
-    sub_b2 = mat_to_gray(sub_b2, sub_b2==0)
+    # get cloud information
+    msk_cloud = read_cloud_mask(path_meta, msk_dim[0:2], geoTransform)
     
-    m, snr, m0, SNR = cosicorr(sub_b1, sub_b2)
+    # create grid and estimate velocities
+    im_stack, I_ul, J_ul = prepare_grids(im_stack, ds)
     
-    ij = np.unravel_index(i, UV.shape)
+    UV = np.zeros(I_ul.shape, dtype=complex)
+    UV_0 = np.zeros(I_ul.shape, dtype=complex)
+    P,C = np.zeros(I_ul.shape), np.zeros(I_ul.shape)
     
-    UV_0[ij] = np.complex(m0[0], m0[1]) # sub-pioxel localization
-    UV[ij] = np.complex(m[0], m[1])     # sub-pixel refinement
-    P[ij], C[ij] = np.real(snr), SNR #  
-
-# some plotting
-fig, ax = plt.subplots()
-im = plt.imshow(np.angle(UV_0))
-#fig.colorbar(im, ax=ax)
-im.set_clim(-np.pi, np.pi)
-plt.show()    
-
-fig, ax = plt.subplots()
-im = plt.imshow(np.real(UV_0))
-#fig.colorbar(im, ax=ax)
-im.set_clim(-1, 1)
-plt.show() 
+    I_ul, J_ul = I_ul.flatten(), J_ul.flatten()
+    for i in range(UV.size):
+        i_b, i_e = I_ul[i], I_ul[i]+ds # row begining and ending
+        j_b, j_e = J_ul[i], J_ul[i]+ds # collumn begining and ending
+        
+        sub_b1 = im_stack[i_b:i_e,j_b:j_e,0] # image templates
+        sub_b2 = im_stack[i_b:i_e,j_b:j_e,2] 
     
+        # simple normalization
+        sub_b1 = mat_to_gray(sub_b1, sub_b1==0)
+        sub_b2 = mat_to_gray(sub_b2, sub_b2==0)
+        
+        m, snr, m0, SNR = cosicorr(sub_b1, sub_b2)
+        
+        ij = np.unravel_index(i, UV.shape)
+        
+        UV_0[ij] = np.complex(m0[0], m0[1]) # sub-pioxel localization
+        UV[ij] = np.complex(m[0], m[1])     # sub-pixel refinement
+        P[ij], C[ij] = np.real(snr), SNR #  
+    
+    # some plotting
+    fig, ax = plt.subplots()
+    im = plt.imshow(np.angle(UV_0))
+    #fig.colorbar(im, ax=ax)
+    im.set_clim(-np.pi, np.pi)
+    plt.show()    
+    
+    fig, ax = plt.subplots()
+    im = plt.imshow(np.real(UV_0))
+    #fig.colorbar(im, ax=ax)
+    im.set_clim(-1, 1)
+    plt.show() 
+    
+if __name__ == "__main__":
+    main()    
