@@ -7,10 +7,14 @@ Created on Mon Mar  8 12:27:44 2021
 
 import numpy as np
 
-x_ship = [206, 172]
-y_ship = [205, 187]
+
+
+
+
 x_wake = [206, 141]
 y_wake = [205, 127]
+x_ship = [206, 173]
+y_ship = [205, 186]
 
 
 def angle(x, y):

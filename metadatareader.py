@@ -62,7 +62,7 @@ def read_zip(zippath):
     output: current_zip ZipFile     Zipfile object
     """
     current_zip = zipfile.ZipFile(zippath)
-    files_in_zip = current_zip.namelist()\
+    files_in_zip = current_zip.namelist()
     for i, file in enumerate(files_in_zip):
         if file[-13:] == 'metadata.json':
             print(file)
