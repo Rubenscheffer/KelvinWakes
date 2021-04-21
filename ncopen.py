@@ -14,7 +14,7 @@ import gdal
 
 filepath = r'C:\Users\Ruben\Documents\Thesis\Data\SST8april1.nc'
 dataset = nc.Dataset(filepath)
-
+ 
 print(dataset)
 
 
