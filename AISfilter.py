@@ -53,7 +53,7 @@ data['minutes'] = minutes
 
 #Filter dataset by time
 
-data = data.loc[(data.hours > 9) & (data.hours < 14)]
+data = data.loc[(data.hours > 1) & (data.hours < 6)]
 
 # Filter dataset by cargo type
 
@@ -109,9 +109,9 @@ data_head = data.head()
 
 #%% Filtering and saving
 
-savepath = r'C://Users/Ruben/Documents/Thesis/Data/AIS/AISdataframe.p'
+savepath = r'C://Users/Ruben/Documents/Thesis/Data/Processing/AISdataframe.p'
 
-# pickle.dump(df, open(savepath, "wb"))
+pickle.dump(df, open(savepath, "wb"))
 
 #%% Visualising
 

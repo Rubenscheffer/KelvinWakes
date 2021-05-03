@@ -4,7 +4,7 @@ import numpy as np
 from skimage.transform import radon, rescale
 from skimage.filters import threshold_otsu
 from scipy import ndimage as nd
-
+import os
 
 def sobel_angle(img, theta):
     dx = nd.sobel(img, 0)  #horizontal Sobel filter
@@ -14,60 +14,101 @@ def sobel_angle(img, theta):
     return image
 
 
-pathfile = r'C://Users/Ruben/Documents/Thesis/Data/Angles1/RawImages/'
+pathfile = r'C://Users/Ruben/Documents/Thesis/Data/Angles2/RawImages/'
 
-fp = pathfile + 'Schip8.tif'
+files = os.listdir(pathfile)
 
-image = gdal.Open(fp, gdal.GA_ReadOnly)
-
-#Average of RGB bands
-
-r_band = image.GetRasterBand(1).ReadAsArray() / 2**15
-g_band = image.GetRasterBand(2).ReadAsArray() / 2**15
-b_band = image.GetRasterBand(3).ReadAsArray() / 2**15
-
-arr = (r_band + g_band + b_band) / 3
+for file in files:
 
 
-plt.style.use('fast')
-plt.figure()
-plt.imshow(arr)
-
-plt.show()
-
-image = rescale(arr, scale=1, anti_aliasing=True,
+    fp = pathfile + file
+    
+    image = gdal.Open(fp, gdal.GA_ReadOnly)
+    
+    #Average of RGB bands
+    
+    r_band = image.GetRasterBand(1).ReadAsArray() / 2**15
+    g_band = image.GetRasterBand(2).ReadAsArray() / 2**15
+    b_band = image.GetRasterBand(3).ReadAsArray() / 2**15
+    
+    arr = (r_band + g_band + b_band) / 3
+    
+    
+    savefolder = r'C://Users/Ruben/Documents/Thesis/Data/Angles2/Images/'
+    file = file[:-4]
+    print(file)
+    
+    plt.style.use('fast')
+    plt.figure()
+    plt.imshow(arr)
+    plt.savefig(savefolder + file + 'filtered.png')
+    plt.show()
+    
+    ques = input('Is the image clear enough [y/n]?')
+    
+    if ques == 'n':
+       
+        image = rescale(arr, scale=1, anti_aliasing=True,
                 mode='reflect', multichannel=False)
+        otsu_threshold = threshold_otsu(image, 2)
+        image[image > (otsu_threshold)] = 0
+        #Otsu threshold picture
+        plt.style.use('fast')
+        plt.figure()
+        plt.imshow(image)
+        plt.savefig(savefolder + file + 'filtered.png')
+        plt.show()
+        
+        ques = input('Is the image clear enough now [y/n]?')
+            
+        if ques == 'y':
+            pass
+            
+        elif ques == 'n':
+            print('Otsu filter did not improve picture')
+            plt.style.use('fast')
+            plt.figure()
+            plt.imshow(arr)
+            plt.savefig(savefolder + file + 'nonfiltered.png')
+            plt.show()
+        
+    elif ques == 'y':
+        continue
+      
 
-median = np.median(image)
+# image = rescale(arr, scale=1, anti_aliasing=True,
+#                 mode='reflect', multichannel=False)
+
+# median = np.median(image)
 
 
-#%% Filter using otsu
+# #%% Filter using otsu
 
-otsu_threshold = threshold_otsu(image, 2)
-# image[image > (otsu_threshold - 500)] = 0
+# otsu_threshold = threshold_otsu(image, 2)
+# # image[image > (otsu_threshold)] = 0
 
-im_max = np.max(arr)
-im_min = np.min(arr)
-print(im_max, im_min)
+# im_max = np.max(arr)
+# im_min = np.min(arr)
+# print(im_max, im_min)
 
 
-#Otsu threshold picture
-plt.style.use('fast')
-plt.figure()
-plt.imshow(image)
-plt.colorbar()
-# plt.savefig(r'C://Users/Ruben/Documents/Thesis/Data/Angles1/Images/Schip8filtered.png')
-plt.show()
+# #Otsu threshold picture
+# plt.style.use('fast')
+# plt.figure()
+# plt.imshow(image)
+# plt.colorbar()
+# # plt.savefig(r'C://Users/Ruben/Documents/Thesis/Data/Angles1/Images/Schip8filtered.png')
+# plt.show()
 
-#Show RGB picture in stead of average over bands
+# #Show RGB picture in stead of average over bands
 
-rgb = np.dstack((r_band, g_band, b_band))
+# rgb = np.dstack((r_band, g_band, b_band))
 
-#RGB picture
-plt.figure()
-plt.imshow(rgb)
-plt.colorbar()
-plt.show()
+# #RGB picture
+# plt.figure()
+# plt.imshow(rgb)
+# plt.colorbar()
+# plt.show()
 
 
 # #%%Preprocessing
