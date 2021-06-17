@@ -84,5 +84,5 @@ for file in files:
 
 #%% Save data
     
-with open(r'C:/Users/Ruben/Documents/Thesis/Data/Angles2/Results/res/anglesheadings4.p', 'wb') as f:    
-    pickle.dump(angles, f)
+# with open(r'C:/Users/Ruben/Documents/Thesis/Data/Angles2/Results/res/anglesheading5.p', 'wb') as f:    
+#     pickle.dump(angles, f)

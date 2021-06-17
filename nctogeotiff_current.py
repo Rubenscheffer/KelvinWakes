@@ -8,21 +8,25 @@ Created on Wed Mar 31 12:31:05 2021
 import xarray as xa
 import rioxarray as rio
 
-filepath = r'C:\Users\Ruben\Documents\Thesis\Data\current.nc'
+filepath = r'C:\Users\Ruben\Documents\Thesis\Data\currents.nc'
 
 ncfile = xa.open_dataset(filepath)
-print(ncfile.values)
+# print(ncfile.values)
 # print(ncfile.indexes)
-surface = ncfile.sel(depth=0)
-# print(surface.values)
-u_s = surface['uo']
-v_s = surface['vo']
+# surface = ncfile.sel(depth=0)
+# # print(surface.values)
+u_s = ncfile['uo']
+v_s = ncfile['vo']
 
 
+# u_s = surface['uo']
+# v_s = surface['vo']
 
-#Averaging
+# #Averaging
 u_s = u_s.mean(dim='time')
 v_s = v_s.mean(dim='time')
+
+# print(u_s.values)
 
 u_s = u_s.rio.set_spatial_dims('longitude', 'latitude')
 u_s.rio.set_crs("epsg:4326")
@@ -34,5 +38,5 @@ v_s.rio.set_crs("epsg:4326")
 # v_s = v_s.values
 
 # Save to GeoTiff
-# u_s.rio.to_raster(r"C://Users/Ruben/Documents/Thesis/data/u_surf.tif")
-# v_s.rio.to_raster(r"C://Users/Ruben/Documents/Thesis/data/v_surf.tif")
+u_s.rio.to_raster(r"C://Users/Ruben/Documents/Thesis/data/u_s.tif")
+v_s.rio.to_raster(r"C://Users/Ruben/Documents/Thesis/data/v_s.tif")

@@ -1,16 +1,17 @@
 # -*- coding: utf-8 -*-
 """
-For instructions read the readme
+Created on Mon Jun 14 12:06:43 2021
 
+@author: Ruben
 """
 
 import cv2
 import numpy as np
 import os
 import pickle
-import sys
+# import sys
 
-imagefolder = r'C:\Users\Ruben\Documents\Thesis\Data\Angles2\Images'
+imagefolder = r'C:\Users\Ruben\Documents\Thesis\Data\Angles2\Symmetry'
 
 files = os.listdir(imagefolder)
 
@@ -45,11 +46,11 @@ for file in files:
     #click event function
     
     def click_event(event, x, y, flags, param):
-        if len(refPt) >= 5:
+        if len(refPt) >= 7:
             cv2.destroyAllWindows()
         
         
-        if len(refPt) < 5:
+        if len(refPt) < 7:
             if event == cv2.EVENT_LBUTTONDOWN:
                 print(f'Point ({x},{y}) saved')
                 refPt.append([x,y])
@@ -72,17 +73,20 @@ for file in files:
     
     ship_dir = rotation(refPt[0], refPt[1])
     turbulent_wake_dir = rotation(refPt[0], refPt[2])
-    kelvin_wake_dir = rotation(refPt[3], refPt[4])
-    kelvin_angle = abs(ship_dir - kelvin_wake_dir)
-    turb_angle = abs(turbulent_wake_dir - kelvin_wake_dir)
+    left_kelvin_wake_dir = rotation(refPt[3], refPt[4])
+    right_kelvin_wake_dir = rotation(refPt[5], refPt[6])
     
-    print(f'Kelvin angle with respect to ship is {kelvin_angle}, with respect to the turbulent wake is {turb_angle}')
-    print(f'Direction of ship is {ship_dir}')
-    angles.append([file, kelvin_angle, turb_angle, ship_dir, turbulent_wake_dir])
+    # kelvin_angle = abs(ship_dir - kelvin_wake_dir)
+    
+    turb_angle_left = abs(turbulent_wake_dir - left_kelvin_wake_dir)
+    turb_angle_right = abs(turbulent_wake_dir - right_kelvin_wake_dir)
+    asymmetry = turb_angle_left - turb_angle_right
+
+    angles.append([file, turb_angle_left, turb_angle_right, asymmetry, turbulent_wake_dir])
 
     # sys.exit()
 
 #%% Save data
     
-with open(r'C:/Users/Ruben/Documents/Thesis/Data/Angles2/Results/res/anglesheadings4.p', 'wb') as f:    
+with open(r'C:/Users/Ruben/Documents/Thesis/Data/Angles2/Results/sym/symangles5.p', 'wb') as f:    
     pickle.dump(angles, f)
