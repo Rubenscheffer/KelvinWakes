@@ -80,9 +80,29 @@ for i, _ in enumerate(u_w):
     
 plt.figure()
 
-plt.errorbar(angle_diffs, angledata['Turb_kelvin_angle'], angledata['Turb_kelvin_angle_std']/np.sqrt(5), linestyle='None', fmt = 'o', capsize = 5)
+plt.errorbar(angle_diffs, angledata['Turb_kelvin_angle'], angledata['Turb_kelvin_angle_std'], linestyle='None', fmt='o', capsize=5, color='red')
+plt.hlines(19.47,-190,190, linestyles='dashed')
 plt.grid(True)
-plt.xlabel('Angle from travel direction (deg)')
-plt.ylabel('Turbulent Kelvin Angle (deg)')
+plt.xlabel(r'$\theta_w$ (deg)')
+plt.ylabel(r'$\beta (deg)$')
+plt.tight_layout()
+plt.xlim(-183,183)
+plt.legend(['Theoretical Kelvin angle', 'Measurements'], loc=((1.04,0.5)))
+
+plt.show()
+
+#%% Select angles
+
+#%% Plot assymetry
+
+plt.figure()
+
+plt.errorbar(angledata['ship_wind_angle'], angledata['angle_dif'], angledata['angle_dif_std'] , linestyle='None', fmt='o', capsize=5)
+plt.grid(True)
+plt.xlabel(r'$\theta_w$ (deg)')
+plt.ylabel(r'$\alpha$ (deg)')
+plt.tight_layout()
+plt.xlim(-183,183)
+# plt.legend(['Theoretical Kelvin angle', 'Measurements'])
 
 plt.show()

@@ -25,6 +25,7 @@ N = 26
 standard_angle = [19.5] * 26
 
 n = [i + 1 for i in range(N)]
+n_2 = [i + 1.2 for i in range(N)]
 
 names = list(np.zeros(N))
 
@@ -64,6 +65,24 @@ for i, name in enumerate(names):
 
 # print(kelvin_angles)
 
+# print(kelvin_angles[:,:5])
+
+kelvin_angles_avg_1 = np.mean(kelvin_angles[:,:5], axis=1)
+kelvin_angles_std_1 = np.std(kelvin_angles[:,:5], axis=1)
+turb_kelvin_angles_avg_1 = np.mean(turb_kelvin_angles[:,:5], axis=1)
+turb_kelvin_angles_std_1 = np.std(turb_kelvin_angles[:,:5], axis=1)
+headings_1 = np.mean(direction[:,:5], axis=1)
+turb_headings_1 = np.mean(turb_direction[:,:5], axis=1)
+
+
+
+kelvin_angles_avg_2 = np.mean(kelvin_angles[:,5:10], axis=1)
+kelvin_angles_std_2 = np.std(kelvin_angles[:,5:10], axis=1)
+turb_kelvin_angles_avg_2 = np.mean(turb_kelvin_angles[:,5:10], axis=1)
+turb_kelvin_angles_std_2 = np.std(turb_kelvin_angles[:,5:10], axis=1)
+headings_2 = np.mean(direction[:,5:10], axis=1)
+turb_headings_2 = np.mean(turb_direction[:,5:10], axis=1)
+
 kelvin_angles_avg = np.mean(kelvin_angles, axis=1)
 kelvin_angles_std = np.std(kelvin_angles, axis=1)
 turb_kelvin_angles_avg = np.mean(turb_kelvin_angles, axis=1)
@@ -80,26 +99,36 @@ print(f'The mean turbulent Kelvin angle std is: {np.mean(turb_kelvin_angles_std)
 
 #%% Plotting
 
-# plt.figure()
+plt.figure()
 
-# plt.errorbar(n, kelvin_angles_avg, kelvin_angles_std, linestyle='None', fmt = 'o', capsize = 5)
-# plt.plot(n, standard_angle)
-# plt.xlabel('Ship number', fontsize=14)
-# plt.ylabel('Kelvin Angle (degrees)', fontsize=14)
-# plt.grid(True)
-# # plt.title('Kelvin Angle')
+plt.errorbar(n, kelvin_angles_avg_1, kelvin_angles_std_1, linestyle='None', fmt = 'o', capsize = 3, color='blue')
+plt.errorbar(n_2, kelvin_angles_avg_2, kelvin_angles_std_2, linestyle='None', fmt = 'o', capsize = 3, color='red')
+plt.scatter(n, kelvin_angles[:,10])
+plt.scatter(n, kelvin_angles[:,11])
+plt.plot(n, standard_angle, '--')
+plt.xlabel('Ship number', fontsize=14)
+plt.ylabel(r'$\beta (deg)$', fontsize=14)
+plt.xlim(0.5,26.5)
+plt.legend(['Theoretical value', 'Person 1','Person 2','Own measurement','Person 3'], loc=((1.04,0.5)))
+plt.grid(True)
+
+plt.show()
+# plt.title('Kelvin Angle')
 
 # plt.show()
 
-# plt.figure()
+plt.figure()
 
-# plt.errorbar([i + 1 for i in range(26)], turb_kelvin_angles_avg, turb_kelvin_angles_std, linestyle='None', fmt = 'o', capsize = 5)
-# plt.plot(n, standard_angle)
-# plt.xlabel('Ship number', fontsize=14)
-# plt.ylabel('Turbulent Kelvin Angle (degrees)', fontsize=14)
+plt.errorbar([i + 1 for i in range(26)], turb_kelvin_angles_avg, turb_kelvin_angles_std, linestyle='None', fmt = 'o', capsize = 5)
+plt.plot(n, standard_angle, '--')
+plt.xlabel('Ship number', fontsize=14)
+plt.ylabel(r'$\beta (deg)$', fontsize=14)
 # plt.title('Turbulent Kelvin Angle')
-           
-# plt.grid(True)
+plt.legend(['Theoretical value', 'Measurements'], loc=((1.04,0.5)))
+plt.xlim(0.5,26.5)
+plt.grid(True)
+
+plt.show()
 
 
 # plt.figure()

@@ -57,7 +57,7 @@ plt.figure()
 plt.scatter(shipdata.SST, angles)
 
 plt.xlabel('SST (K)')
-plt.ylabel('Turbulent Kelvin Angle (degrees)')
+plt.ylabel(r'$\beta$ (deg)')
 plt.grid(True)
 
 plt.show()
