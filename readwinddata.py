@@ -63,25 +63,29 @@ u_w = data['u_w'][:26]
 v_w = data['v_w'][:26]
 angles = []
 angle_diffs = []
+perps = []
 
 ship_headings = angledata['Turb_heading']
 
 for i, _ in enumerate(u_w):
     u = u_w[i]
     v = v_w[i]
+    s = np.sqrt(u**2 + v**2)
     angle = rotation(u, v)
     angles.append(angle)
     ship_heading = ship_headings[i]
     angle_diff = angle_difference(angle, ship_heading)
     angle_diffs.append(angle_diff)
+    p = s * np.sin(angle_diff*np.pi/180)
+    perps.append(p)
     print(angle_diff)
     
 #%% Plotting
     
 plt.figure()
 
-plt.errorbar(angle_diffs, angledata['Turb_kelvin_angle'], angledata['Turb_kelvin_angle_std'], linestyle='None', fmt='o', capsize=5, color='red')
-plt.hlines(19.47,-190,190, linestyles='dashed')
+plt.errorbar(angle_diffs, angledata['Turb_kelvin_angle'], angledata['Turb_kelvin_angle_std'], linestyle='None', fmt='o', capsize=5)
+plt.hlines(19.47,-190,190, linestyles='dashed', color='green')
 plt.grid(True)
 plt.xlabel(r'$\theta_w$ (deg)')
 plt.ylabel(r'$\beta (deg)$')
@@ -97,12 +101,12 @@ plt.show()
 
 plt.figure()
 
-plt.errorbar(angledata['ship_wind_angle'], angledata['angle_dif'], angledata['angle_dif_std'] , linestyle='None', fmt='o', capsize=5)
+plt.errorbar(angledata['perp_wind'], angledata['angle_dif'], angledata['angle_dif_std'] , linestyle='None', fmt='o', capsize=5)
 plt.grid(True)
-plt.xlabel(r'$\theta_w$ (deg)')
-plt.ylabel(r'$\alpha$ (deg)')
+plt.xlabel(r'$w_{\perp}$ (m/s)')
+plt.ylabel(r'$\bar{\alpha}$ (deg)')
 plt.tight_layout()
-plt.xlim(-183,183)
+plt.xlim(-5,-1)
 # plt.legend(['Theoretical Kelvin angle', 'Measurements'])
 
 plt.show()
